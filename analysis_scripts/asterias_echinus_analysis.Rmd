@@ -1,0 +1,83 @@
+---
+title: "Data Exploration"
+author: "Sarina Singh Khaira"
+date: "09/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(here)
+```
+
+
+```{r}
+seasearch <- read_csv(here("clean_data/seasearch.csv"))
+```
+
+# Number of surveys each year
+
+```{r}
+seasearch %>%
+  select(start_date_year, survey_key) %>%
+  unique() %>%
+  ggplot() +
+  aes(x = start_date_year) +
+  geom_bar()
+```
+Reliable data starts around 2004
+
+# Number of times species are recorded
+```{r}
+seasearch_cleaned %>%
+  filter(taxon_rank == "species") %>%
+  group_by(scientific_name) %>%
+  summarise(count = n()) %>%
+  slice_max(count, n = 15) %>%
+  ggplot(aes(x = fct_reorder(scientific_name, -count), y = count)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Most commonly sighted organisms are asterias rubens and echinus esculentus
+
+# Percentage of surveys which saw an urchin or starfish per year
+
+```{r}
+seasearch %>% 
+  group_by(survey_key, start_date_year) %>%
+  summarise(starfish = scientific_name == "Asterias rubens",
+            urchin = scientific_name == "Echinus esculentus") %>%
+  unique() %>%
+  group_by(start_date_year) %>%
+  summarise(starfish_present_prop = mean(starfish == TRUE),
+            urchin_present_prop = mean(urchin == TRUE)) %>%
+  ggplot() +
+  aes(x = start_date_year) +
+  geom_line(aes(y = starfish_present_prop)) +
+  geom_line(aes(y = urchin_present_prop), colour = "blue")
+```
+Perhaps there is also seasonality, how many surveys are completed in the winter?
+
+```{r}
+seasearch %>%
+  select(start_date_month, survey_key) %>%
+  unique() %>%
+  ggplot() +
+  aes(x = start_date_month) +
+  geom_bar()
+```
+
+Number of surveys containing Asterias rubens and echinus esculentus per year
+
+```{r}
+seasearch %>%
+  filter(scientific_name %in% c("Asterias rubens", "Echinus esculentus"),
+         start_date_year >= 2004 ) %>%
+  ggplot() +
+  aes(x = start_date_year, fill = scientific_name) +
+  geom_bar(position = "dodge")
+```
+
